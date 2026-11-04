@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sky Fit · Chamada nas TVs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ---------- Tokens (claro/escuro) ---------- */
+  :root {
+    color-scheme: light;
+    --bg: #F3F2F0;
+    --surface: #FFFFFF;
+    --surface-2: #ECEAE7;
+    --text: #17171A;
+    --muted: #5E5D63;
+    --line: #DAD8D4;
+    --red: #D7141A;
+    --red-ink: #FFFFFF;
+    --ok: #138A4A;
+    --warn: #B26B00;
+    --display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+    --body: "Barlow", "Segoe UI", Roboto, Arial, sans-serif;
+    --radius-lg: 14px;
+    --radius-sm: 8px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --bg: #121214;
+      --surface: #1B1B1F;
+      --surface-2: #26262B;
+      --text: #F2F1EF;
+      --muted: #A3A2A8;
+      --line: #313137;
+      --ok: #3CCB7F;
+      --warn: #F0A63A;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.5 var(--body);
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
+  .hidden { display: none !important; }
+
+  /* ---------- Topo ---------- */
+  header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .brand {
+    font: 800 24px/1 var(--display);
+    letter-spacing: .01em;
+    margin-right: auto;
+  }
+  .brand span { color: var(--red); }
+  header select, .ghost {
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: var(--radius-sm); padding: 8px 12px; cursor: pointer;
+  }
+
+  /* ---------- Layout ---------- */
+  main {
+    max-width: 1180px; margin: 0 auto; padding: 20px;
+    display: grid; gap: 20px;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 960px) {
+    main { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); align-items: start; }
+  }
+  section {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+  }
+  h2 { font: 700 26px/1.1 var(--display); margin: 0 0 4px; }
+  .hint { color: var(--muted); margin: 0 0 18px; font-size: 15px; }
+  .stack { display: grid; gap: 20px; }
+
+  /* ---------- Formulário ---------- */
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+  .field { margin-bottom: 18px; }
+  input[type=text], input[type=email], input[type=password] {
+    width: 100%; padding: 13px 14px; font-size: 18px;
+    background: var(--surface-2); border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+  }
+  #placa {
+    font: 800 34px/1 var(--display); letter-spacing: .12em; text-transform: uppercase;
+    text-align: center; padding: 12px;
+  }
+  .err { color: var(--red); font-size: 14px; min-height: 20px; margin-top: 4px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 12px; border-radius: 999px; cursor: pointer;
+    background: var(--surface-2); border: 1px solid var(--line);
+    transition: border-color .15s, background .15s;
+  }
+  .chip i { width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(127,127,127,.5); }
+  .chip[aria-pressed=true] { border-color: var(--red); background: color-mix(in srgb, var(--red) 12%, var(--surface-2)); font-weight: 600; }
+
+  .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
+  .seg button { border: 0; background: var(--surface-2); padding: 8px 16px; cursor: pointer; }
+  .seg button[aria-pressed=true] { background: var(--red); color: var(--red-ink); }
+  .toggle { display: inline-flex; gap: 8px; align-items: center; font-weight: 500; cursor: pointer; }
+  .toggle input { width: 20px; height: 20px; accent-color: var(--red); }
+
+  .primary {
+    width: 100%; border: 0; cursor: pointer;
+    background: var(--red); color: var(--red-ink);
+    font: 800 26px/1 var(--display); letter-spacing: .02em;
+    padding: 18px; border-radius: var(--radius-sm);
+    transition: transform .08s, opacity .15s;
+  }
+  .primary:active { transform: scale(.985); }
+  .primary:disabled { opacity: .45; cursor: not-allowed; }
+
+  /* ---------- Prévia da TV: o elemento marcante ---------- */
+  .tv {
+    aspect-ratio: 16 / 9;
+    border-radius: var(--radius-sm);
+    border: 8px solid #0A0A0A;
+    background: linear-gradient(135deg, #B30F14 0%, #0A0A0A 100%);
+    color: #fff; text-align: center;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    container-type: inline-size;
+    overflow: hidden; position: relative;
+  }
+  .tv .t1 { font: 800 13cqw/1 var(--display); }
+  .tv .t2 { font: 500 4.4cqw/1.2 var(--body); opacity: .9; margin-top: 1cqw; }
+  .tv .t3 { font: 800 7cqw/1.1 var(--display); color: #FFD54A; text-transform: uppercase; }
+  .tv .plate {
+    margin: 2.4cqw 0; background: #fff; color: #000;
+    border: .5cqw solid #000; border-radius: 1.2cqw; overflow: hidden;
+  }
+  .tv .plate small { display: block; background: #0A3DA8; color: #fff; font: 700 2.2cqw/1.6 var(--display); letter-spacing: .2em; }
+  .tv .plate b { display: block; font: 800 10cqw/1.05 ui-monospace, "Roboto Mono", monospace; padding: 0 3cqw; }
+  .tv .t4 { font: 700 5.2cqw/1.1 var(--display); }
+  .tv-caption { color: var(--muted); font-size: 14px; margin: 8px 0 0; }
+
+  /* ---------- Status / listas ---------- */
+  .status-box { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .status-box p { margin: 0; flex: 1 1 220px; }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+  .pill.ok { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+  .pill.off { background: color-mix(in srgb, var(--red) 15%, transparent); color: var(--red); }
+  .pill.warn { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+  .ghost.danger { color: var(--red); border-color: var(--red); background: transparent; font-weight: 600; }
+
+  ul.list { list-style: none; margin: 0; padding: 0; }
+  ul.list li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+  ul.list li:first-child { border-top: 0; }
+  ul.list small { color: var(--muted); }
+  .count { font: 800 34px/1 var(--display); }
+
+  /* ---------- Login ---------- */
+  #login { max-width: 420px; margin: 8vh auto; }
+  #login h1 { font: 800 40px/1 var(--display); margin: 0 0 6px; }
+  #login h1 span { color: var(--red); }
+
+  /* ---------- Modal ---------- */
+  dialog {
+    border: 1px solid var(--line); border-radius: var(--radius-lg);
+    background: var(--surface); color: var(--text);
+    padding: 24px; width: min(440px, 92vw);
+  }
+  dialog::backdrop { background: rgba(0,0,0,.55); }
+  dialog p { margin: 0 0 18px; }
+  .actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .actions .primary { width: auto; font-size: 20px; padding: 12px 22px; }
+
+  #toast {
+    position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom));
+    transform: translateX(-50%) translateY(20px); opacity: 0;
+    background: var(--text); color: var(--bg);
+    padding: 12px 18px; border-radius: var(--radius-sm); font-weight: 600;
+    transition: opacity .2s, transform .2s; pointer-events: none; max-width: 90vw;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN ================= -->
+<section id="login" class="hidden">
+  <h1>Sky <span>Fit</span> Chamada</h1>
+  <p class="hint">Entre com o acesso da recepção.</p>
+  <form id="formLogin" novalidate>
+    <div class="field">
+      <label for="email">E-mail</label>
+      <input type="email" id="email" autocomplete="username" required>
+    </div>
+    <div class="field">
+      <label for="senha">Senha</label>
+      <input type="password" id="senha" autocomplete="current-password" required>
+      <div class="err" id="erroLogin"></div>
+    </div>
+    <button class="primary" type="submit">Entrar</button>
+  </form>
+</section>
+
+<!-- ================= APP ================= -->
+<div id="app" class="hidden">
+  <header>
+    <div class="brand">Sky <span>Fit</span> Chamada</div>
+    <select id="unidade" aria-label="Unidade"></select>
+    <button class="ghost" id="sair">Sair</button>
+  </header>
+
+  <main>
+    <!-- Formulário -->
+    <section>
+      <h2>Chamar proprietário de veículo</h2>
+      <p class="hint">Preencha os dados do carro. O texto do aviso é montado automaticamente.</p>
+
+      <div class="field">
+        <label for="modelo">Modelo</label>
+        <input type="text" id="modelo" list="modelos" placeholder="Ex.: Onix" autocomplete="off" maxlength="30">
+        <datalist id="modelos"></datalist>
+      </div>
+
+      <div class="field">
+        <label id="corLabel">Cor</label>
+        <div class="chips" id="cores" role="group" aria-labelledby="corLabel"></div>
+      </div>
+
+      <div class="field">
+        <label for="placa">Placa</label>
+        <input type="text" id="placa" placeholder="ABC1D23" maxlength="8" autocomplete="off" inputmode="text">
+        <div class="err" id="erroPlaca"></div>
+      </div>
+
+      <div class="field row">
+        <div>
+          <label id="exLabel">Repetições na TV</label>
+          <div class="seg" id="exibicoes" role="group" aria-labelledby="exLabel">
+            <button type="button" data-v="1">1×</button>
+            <button type="button" data-v="2">2×</button>
+            <button type="button" data-v="3" aria-pressed="true">3×</button>
+          </div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="som" checked> Tocar bipe</label>
+      </div>
+
+      <button class="primary" id="transmitir" disabled>Transmitir nas TVs</button>
+    </section>
+
+    <!-- Coluna direita -->
+    <div class="stack">
+      <section>
+        <div class="tv" aria-label="Prévia do aviso na TV">
+          <div class="t1">⚠ ATENÇÃO</div>
+          <div class="t2">Proprietário do veículo</div>
+          <div class="t3" id="pvVeiculo">Modelo cor</div>
+          <div class="plate"><small>BRASIL</small><b id="pvPlaca">ABC1D23</b></div>
+          <div class="t4">Por favor, compareça à recepção</div>
+        </div>
+        <p class="tv-caption">É assim que o aviso aparece em todas as TVs da unidade, por 10 segundos a cada repetição.</p>
+      </section>
+
+      <section>
+        <h2>Chamada atual</h2>
+        <div class="status-box">
+          <p id="statusChamada">Nenhuma chamada enviada ainda.</p>
+          <button class="ghost danger hidden" id="cancelar">Cancelar chamada</button>
+        </div>
+      </section>
+
+      <section>
+        <div class="row" style="justify-content:space-between">
+          <h2>TVs da unidade</h2>
+          <span><span class="count" id="tvOnline">0</span> <small class="hint" id="tvTotal">de 0 online</small></span>
+        </div>
+        <ul class="list" id="listaTvs"><li><small>Nenhuma TV conectada nesta unidade.</small></li></ul>
+      </section>
+
+      <section>
+        <h2>Últimas chamadas</h2>
+        <ul class="list" id="historico"><li><small>Sem chamadas registradas.</small></li></ul>
+      </section>
+    </div>
+  </main>
+</div>
+
+<dialog id="confirmar">
+  <h2>Transmitir este aviso?</h2>
+  <p id="confirmarTexto"></p>
+  <div class="actions">
+    <button class="ghost" id="confirmarNao">Voltar</button>
+    <button class="primary" id="confirmarSim">Transmitir</button>
+  </div>
+</dialog>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script type="module">
+/* =========================================================
+   CONFIGURAÇÃO — cole aqui os dados do seu projeto Firebase
+   (Firebase > Configurações do projeto > Seus apps > Web)
+   ========================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyDAA3-VvCtWn-w-p4fIB1RPvUZcguPuwTM",
+  authDomain: "skyfit-chamada.firebaseapp.com",
+  databaseURL: "https://skyfit-chamada-default-rtdb.firebaseio.com",
+  projectId: "skyfit-chamada",
+  appId: "1:267631431521:web:4f8515476dc5403817bf20"
+};
+
+// Mesmos ids usados no app da TV (Config.kt)
+const UNIDADES = [
+  { id: "ville-roy", nome: "Ville Roy" },
+  { id: "buritis",   nome: "Buritis" }
+];
+
+const DURACAO_SEG = 10;   // tempo de cada exibição
+const INTERVALO_SEG = 20; // pausa entre repetições
+const ONLINE_MS = 150000; // TV sem sinal há mais de 2,5 min = offline
+
+const CORES = [
+  ["Branco", "#FFFFFF"], ["Prata", "#C0C0C0"], ["Preto", "#111111"], ["Cinza", "#7A7A7A"],
+  ["Vermelho", "#C8102E"], ["Azul", "#1F4FB5"], ["Verde", "#1E7A3C"], ["Amarelo", "#F2C230"],
+  ["Bege", "#D9C7A1"], ["Marrom", "#6B4226"], ["Vinho", "#6E1423"], ["Laranja", "#E8701A"]
+];
+const MODELOS = ["Onix","HB20","Gol","Strada","Hilux","Corolla","Compass","Kwid","Mobi","Argo",
+  "Toro","S10","Creta","Tracker","Polo","T-Cross","Saveiro","Renegade","Uno","Prisma","Ranger",
+  "Fiorino","Cronos","Nivus","Kicks","Sandero","Duster","Civic","HR-V","Fit","Yaris","Etios",
+  "Fox","Voyage","Celta","Corsa","Spin","Montana","Fastback","Pulse","Moto"];
+
+/* ================= Firebase ================= */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getDatabase, ref, set, update, onValue, off, query, orderByChild, limitToLast, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+/* ================= Estado ================= */
+const $ = (id) => document.getElementById(id);
+const state = {
+  unidade: localStorage.getItem("skyfit_unidade") || UNIDADES[0].id,
+  cor: "", exibicoes: 3,
+  chamada: null, tvs: {}, offset: 0,
+  listeners: [], enviando: false
+};
+const agoraServidor = () => Date.now() + state.offset;
+
+/* ================= Utilidades ================= */
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("show"), 3500);
+}
+const limparPlaca = (v) => v.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 7);
+const placaValida = (p) => /^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(p);
+const formatarPlaca = (p) => (p.length === 7 && /[0-9]/.test(p[4])) ? p.slice(0, 3) + "-" + p.slice(3) : p;
+const hora = (ts) => new Date(ts).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+/* ================= Montagem da interface ================= */
+$("unidade").innerHTML = UNIDADES.map(u => `<option value="${u.id}">${esc(u.nome)}</option>`).join("");
+$("unidade").value = state.unidade;
+$("modelos").innerHTML = MODELOS.map(m => `<option value="${m}">`).join("");
+$("cores").innerHTML = CORES.map(([n, hex]) =>
+  `<button type="button" class="chip" data-cor="${n}" aria-pressed="false"><i style="background:${hex}"></i>${n}</button>`
+).join("");
+
+$("cores").addEventListener("click", (e) => {
+  const b = e.target.closest(".chip"); if (!b) return;
+  state.cor = b.dataset.cor;
+  document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", c === b));
+  atualizarPrevia();
+});
+$("exibicoes").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  state.exibicoes = Number(b.dataset.v);
+  $("exibicoes").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b));
+});
+$("placa").addEventListener("input", (e) => {
+  e.target.value = limparPlaca(e.target.value);
+  atualizarPrevia();
+});
+$("modelo").addEventListener("input", atualizarPrevia);
+
+function atualizarPrevia() {
+  const modelo = $("modelo").value.trim();
+  const placa = limparPlaca($("placa").value);
+  $("pvVeiculo").textContent = `${modelo || "Modelo"} ${state.cor || "cor"}`;
+  $("pvPlaca").textContent = placa ? formatarPlaca(placa) : "ABC1D23";
+  $("erroPlaca").textContent = placa.length === 7 && !placaValida(placa)
+    ? "Placa inválida. Use ABC1234 ou ABC1D23." : "";
+  $("transmitir").disabled = state.enviando || !(modelo.length >= 2 && state.cor && placaValida(placa));
+}
+
+/* ================= Login ================= */
+$("formLogin").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  $("erroLogin").textContent = "";
+  try {
+    await signInWithEmailAndPassword(auth, $("email").value.trim(), $("senha").value);
+  } catch {
+    $("erroLogin").textContent = "E-mail ou senha incorretos.";
+  }
+});
+$("sair").addEventListener("click", () => signOut(auth));
+
+onAuthStateChanged(auth, (user) => {
+  $("login").classList.toggle("hidden", !!user);
+  $("app").classList.toggle("hidden", !user);
+  if (user) escutarUnidade(); else pararEscuta();
+});
+
+/* ================= Tempo real ================= */
+onValue(ref(db, ".info/serverTimeOffset"), (s) => { state.offset = s.val() || 0; });
+
+function pararEscuta() {
+  state.listeners.forEach(r => off(r));
+  state.listeners = [];
+}
+
+function escutarUnidade() {
+  pararEscuta();
+  const base = `unidades/${state.unidade}`;
+
+  const rChamada = ref(db, `${base}/chamada`);
+  onValue(rChamada, (s) => { state.chamada = s.val(); renderChamada(); });
+
+  const rTvs = ref(db, `${base}/tvs`);
+  onValue(rTvs, (s) => { state.tvs = s.val() || {}; renderTvs(); });
+
+  const rHist = query(ref(db, `${base}/historico`), orderByChild("ts"), limitToLast(10));
+  onValue(rHist, (s) => {
+    const itens = [];
+    s.forEach(c => { itens.unshift(c.val()); });
+    renderHistorico(itens);
+  });
+
+  state.listeners = [rChamada, rTvs, rHist];
+}
+
+$("unidade").addEventListener("change", (e) => {
+  state.unidade = e.target.value;
+  localStorage.setItem("skyfit_unidade", state.unidade);
+  escutarUnidade();
+});
+
+/* ================= Renderização ================= */
+function fimDaChamada(c) {
+  const ex = c.exibicoes || 3;
+  return c.ts + ((ex - 1) * (DURACAO_SEG + INTERVALO_SEG) + DURACAO_SEG) * 1000;
+}
+function chamadaAtiva() {
+  const c = state.chamada;
+  return !!(c && !c.cancelada && c.ts && agoraServidor() < fimDaChamada(c));
+}
+
+function renderChamada() {
+  const c = state.chamada;
+  const btn = $("cancelar");
+  if (!c) { $("statusChamada").textContent = "Nenhuma chamada enviada ainda."; btn.classList.add("hidden"); return; }
+  const desc = `<strong>${esc(c.modelo)} ${esc(c.cor)}</strong> · placa ${esc(formatarPlaca(c.placa))} · ${c.ts ? hora(c.ts) : "enviando"}`;
+  let pill;
+  if (c.cancelada) pill = `<span class="pill off">Cancelada</span>`;
+  else if (chamadaAtiva()) pill = `<span class="pill warn">Em exibição · ${Math.ceil((fimDaChamada(c) - agoraServidor()) / 1000)}s</span>`;
+  else pill = `<span class="pill ok">Concluída</span>`;
+  $("statusChamada").innerHTML = `${pill}<br>${desc}`;
+  btn.classList.toggle("hidden", !chamadaAtiva());
+}
+setInterval(() => { renderChamada(); renderTvs(); }, 1000);
+
+function renderTvs() {
+  const lista = Object.entries(state.tvs).sort((a, b) => (a[1].nome || "").localeCompare(b[1].nome || ""));
+  let online = 0;
+  const html = lista.map(([id, tv]) => {
+    const on = agoraServidor() - (tv.lastSeen || 0) < ONLINE_MS;
+    if (on) online++;
+    const pill = !on ? `<span class="pill off">Offline</span>`
+      : tv.sobreposicaoOk === false ? `<span class="pill warn">Sem permissão de sobrepor</span>`
+      : `<span class="pill ok">Online</span>`;
+    const visto = tv.lastSeen ? `último sinal ${hora(tv.lastSeen)}` : "sem sinal";
+    return `<li><span>${esc(tv.nome || id)}<br><small>${visto} · v${esc(tv.versao || "?")}</small></span>${pill}</li>`;
+  }).join("");
+  $("listaTvs").innerHTML = html || `<li><small>Nenhuma TV conectada nesta unidade.</small></li>`;
+  $("tvOnline").textContent = online;
+  $("tvTotal").textContent = `de ${lista.length} online`;
+}
+
+function renderHistorico(itens) {
+  $("historico").innerHTML = itens.length ? itens.map(h =>
+    `<li><span>${esc(h.modelo)} ${esc(h.cor)} · ${esc(formatarPlaca(h.placa || ""))}<br><small>${esc(h.por || "")}</small></span>
+     <small>${h.ts ? hora(h.ts) : ""}${h.cancelada ? " · cancelada" : ""}</small></li>`
+  ).join("") : `<li><small>Sem chamadas registradas.</small></li>`;
+}
+
+/* ================= Transmitir ================= */
+$("transmitir").addEventListener("click", () => {
+  const placa = limparPlaca($("placa").value);
+  const online = Number($("tvOnline").textContent);
+  let txt = `${$("modelo").value.trim()} ${state.cor}, placa ${formatarPlaca(placa)}. O aviso aparece ${state.exibicoes}× em ${online} TV(s) online.`;
+  if (chamadaAtiva()) txt += " A chamada em exibição agora será substituída.";
+  if (online === 0) txt += " Atenção: nenhuma TV está online.";
+  $("confirmarTexto").textContent = txt;
+  $("confirmar").showModal();
+});
+$("confirmarNao").addEventListener("click", () => $("confirmar").close());
+
+$("confirmarSim").addEventListener("click", async () => {
+  $("confirmar").close();
+  if (state.enviando) return;
+  state.enviando = true; atualizarPrevia();
+
+  const id = crypto.randomUUID();
+  const dados = {
+    id,
+    modelo: $("modelo").value.trim(),
+    cor: state.cor,
+    placa: limparPlaca($("placa").value),
+    exibicoes: state.exibicoes,
+    duracaoSeg: DURACAO_SEG,
+    intervaloSeg: INTERVALO_SEG,
+    som: $("som").checked,
+    cancelada: false,
+    por: auth.currentUser?.email || "",
+    ts: serverTimestamp()
+  };
+  const base = `unidades/${state.unidade}`;
+  try {
+    await set(ref(db, `${base}/chamada`), dados);
+    await set(ref(db, `${base}/historico/${id}`), dados);
+    toast("Transmitido nas TVs.");
+    limparFormulario();
+  } catch (e) {
+    console.error(e);
+    toast("Não foi possível transmitir. Verifique a internet e tente de novo.");
+  } finally {
+    // Pausa curta evita envio duplicado por clique repetido
+    setTimeout(() => { state.enviando = false; atualizarPrevia(); }, 4000);
+  }
+});
+
+$("cancelar").addEventListener("click", async () => {
+  const c = state.chamada; if (!c) return;
+  try {
+    const base = `unidades/${state.unidade}`;
+    await update(ref(db, `${base}/chamada`), { cancelada: true });
+    await update(ref(db, `${base}/historico/${c.id}`), { cancelada: true });
+    toast("Chamada cancelada.");
+  } catch (e) {
+    console.error(e);
+    toast("Não foi possível cancelar. Tente de novo.");
+  }
+});
+
+function limparFormulario() {
+  $("modelo").value = ""; $("placa").value = ""; state.cor = "";
+  document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", "false"));
+  atualizarPrevia();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Banner da tela inicial da TV (320x180) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp" android:height="180dp"
+    android:viewportWidth="320" android:viewportHeight="180">
+    <path android:fillColor="#111111" android:pathData="M0,0h320v180h-320z" />
+    <path android:fillColor="#D7141A" android:pathData="M0,0h140l-60,180h-80z" />
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M150,74h18l46,-26v84l-46,-26h-18z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M226,70h10v40h-10z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M246,60h10v60h-10z" />
+</vector>
