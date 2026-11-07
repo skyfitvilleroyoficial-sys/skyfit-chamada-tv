@@ -393,6 +393,17 @@ $("sair").addEventListener("click", () => signOut(auth));
 onAuthStateChanged(auth, (user) => {
   $("login").classList.toggle("hidden", !!user);
   $("app").classList.toggle("hidden", !user);
+  // Modo automático (?auto=1): se o Edge foi aberto liberando o áudio, ativa o som sem clique
+  if (user && !state.somAtivo && new URLSearchParams(location.search).get("auto") === "1") {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === "running") {
+        state.somAtivo = true;
+        marcarStatus("ok", "Pronto para falar", "Som ativado automaticamente.");
+      }
+      ctx.close();
+    } catch {}
+  }
   $("ativar").classList.toggle("hidden", !user || state.somAtivo);
   clearInterval(state.heartbeat);
   if (user) {
