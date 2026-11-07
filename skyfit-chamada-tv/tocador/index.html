@@ -94,30 +94,11 @@
 </head>
 <body>
 
-<!-- ================= LOGIN ================= -->
-<section id="login" class="hidden">
-  <h1>Sky <span>Fit</span> Tocador</h1>
-  <p class="hint">Entre com o acesso da recepção.</p>
-  <form id="formLogin" novalidate>
-    <div class="field">
-      <label for="email">E-mail</label>
-      <input type="email" id="email" autocomplete="username">
-    </div>
-    <div class="field">
-      <label for="senha">Senha</label>
-      <input type="password" id="senha" autocomplete="current-password">
-      <div class="err" id="erroLogin"></div>
-    </div>
-    <button class="primary" type="submit">Entrar</button>
-  </form>
-</section>
-
 <!-- ================= TOCADOR ================= -->
 <div id="app" class="hidden">
   <header>
     <div class="brand">Sky <span>Fit</span> Tocador</div>
     <select id="unidade" aria-label="Unidade"></select>
-    <button class="ghost" id="sair">Sair</button>
   </header>
 
   <main>
@@ -181,7 +162,7 @@ const IDADE_MAXIMA_MS = 90000; // ignora chamadas antigas ao abrir a página
 const HEARTBEAT_MS = 60000;
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut }
+import { getAuth, signInAnonymously, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getDatabase, ref, set, onValue, off, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
@@ -382,17 +363,20 @@ $("testar").addEventListener("click", () => {
   falar(montarTexto({ modelo: "Onix", cor: "Prata", placa: "ABC1D23" }));
 });
 
-$("formLogin").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  $("erroLogin").textContent = "";
-  try { await signInWithEmailAndPassword(auth, $("email").value.trim(), $("senha").value); }
-  catch { $("erroLogin").textContent = "E-mail ou senha incorretos."; }
-});
-$("sair").addEventListener("click", () => signOut(auth));
+
+
+/* Login anônimo automático: o Tocador só OUVE as chamadas (não consegue transmitir),
+   então não precisa de e-mail e senha. Transmitir continua exigindo login no painel. */
+function entrarAnonimo() {
+  signInAnonymously(auth).catch(() => {
+    marcarStatus("off", "Sem conexão", "Tentando conectar de novo em 10 segundos…");
+    setTimeout(entrarAnonimo, 10000);
+  });
+}
 
 onAuthStateChanged(auth, (user) => {
-  $("login").classList.toggle("hidden", !!user);
-  $("app").classList.toggle("hidden", !user);
+  if (!user) { entrarAnonimo(); return; }
+  $("app").classList.remove("hidden");
   // Modo automático (?auto=1): se o Edge foi aberto liberando o áudio, ativa o som sem clique
   if (user && !state.somAtivo && new URLSearchParams(location.search).get("auto") === "1") {
     try {
