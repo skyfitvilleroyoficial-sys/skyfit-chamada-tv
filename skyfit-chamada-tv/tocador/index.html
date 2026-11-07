@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sky Fit · Tocador de Áudio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #F3F2F0; --surface: #FFFFFF; --surface-2: #ECEAE7;
+    --text: #17171A; --muted: #5E5D63; --line: #DAD8D4;
+    --red: #D7141A; --red-ink: #FFFFFF; --ok: #138A4A; --warn: #B26B00;
+    --display: "Barlow Condensed", "Arial Narrow", sans-serif;
+    --body: "Barlow", "Segoe UI", Roboto, Arial, sans-serif;
+    --radius-lg: 14px; --radius-sm: 8px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --bg: #121214; --surface: #1B1B1F; --surface-2: #26262B;
+      --text: #F2F1EF; --muted: #A3A2A8; --line: #313137;
+      --ok: #3CCB7F; --warn: #F0A63A;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--text); font: 16px/1.5 var(--body); -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
+  .hidden { display: none !important; }
+
+  header { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--surface); }
+  .brand { font: 800 24px/1 var(--display); margin-right: auto; }
+  .brand span { color: var(--red); }
+  header select, .ghost { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px 12px; cursor: pointer; }
+
+  main { max-width: 760px; margin: 0 auto; padding: 20px; display: grid; gap: 20px; }
+  section { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 20px; }
+  h2 { font: 700 26px/1.1 var(--display); margin: 0 0 4px; }
+  .hint { color: var(--muted); margin: 0 0 16px; font-size: 15px; }
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+  .field { margin-bottom: 16px; }
+  input[type=email], input[type=password], select.full {
+    width: 100%; padding: 12px 14px; background: var(--surface-2);
+    border: 1px solid var(--line); border-radius: var(--radius-sm); font-size: 17px;
+  }
+  input[type=range] { width: 100%; accent-color: var(--red); }
+  .primary {
+    width: 100%; border: 0; cursor: pointer; background: var(--red); color: var(--red-ink);
+    font: 800 24px/1 var(--display); padding: 16px; border-radius: var(--radius-sm);
+  }
+  .err { color: var(--red); font-size: 14px; min-height: 20px; margin-top: 4px; }
+
+  /* Estado principal: o elemento que a recepção olha de longe */
+  .status {
+    display: flex; align-items: center; gap: 18px;
+    padding: 22px; border-radius: var(--radius-lg);
+    background: var(--surface-2); border: 1px solid var(--line);
+  }
+  .dot { width: 22px; height: 22px; border-radius: 50%; background: var(--muted); flex: none; }
+  .status.ok .dot { background: var(--ok); box-shadow: 0 0 0 6px color-mix(in srgb, var(--ok) 20%, transparent); }
+  .status.falando .dot { background: var(--red); animation: pulso 0.8s ease-in-out infinite alternate; }
+  .status.off .dot { background: var(--warn); }
+  .status strong { font: 800 28px/1.1 var(--display); display: block; }
+  .status small { color: var(--muted); }
+  @keyframes pulso { to { transform: scale(1.35); } }
+
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 560px) { .row { grid-template-columns: 1fr; } }
+
+  ul.list { list-style: none; margin: 0; padding: 0; }
+  ul.list li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+  ul.list li:first-child { border-top: 0; }
+  ul.list small { color: var(--muted); }
+
+  /* Ativação obrigatória do som (regra dos navegadores) */
+  #ativar {
+    position: fixed; inset: 0; z-index: 10;
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+    background: rgba(10, 10, 10, .88);
+  }
+  #ativar .box { text-align: center; max-width: 440px; color: #fff; }
+  #ativar h1 { font: 800 40px/1 var(--display); margin: 0 0 10px; }
+  #ativar p { margin: 0 0 22px; color: #ddd; }
+
+  #login { max-width: 420px; margin: 8vh auto; }
+  #login h1 { font: 800 40px/1 var(--display); margin: 0 0 6px; }
+  #login h1 span { color: var(--red); }
+  @media (prefers-reduced-motion: reduce) { .status.falando .dot { animation: none; } }
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN ================= -->
+<section id="login" class="hidden">
+  <h1>Sky <span>Fit</span> Tocador</h1>
+  <p class="hint">Entre com o acesso da recepção.</p>
+  <form id="formLogin" novalidate>
+    <div class="field">
+      <label for="email">E-mail</label>
+      <input type="email" id="email" autocomplete="username">
+    </div>
+    <div class="field">
+      <label for="senha">Senha</label>
+      <input type="password" id="senha" autocomplete="current-password">
+      <div class="err" id="erroLogin"></div>
+    </div>
+    <button class="primary" type="submit">Entrar</button>
+  </form>
+</section>
+
+<!-- ================= TOCADOR ================= -->
+<div id="app" class="hidden">
+  <header>
+    <div class="brand">Sky <span>Fit</span> Tocador</div>
+    <select id="unidade" aria-label="Unidade"></select>
+    <button class="ghost" id="sair">Sair</button>
+  </header>
+
+  <main>
+    <div class="status off" id="status">
+      <div class="dot"></div>
+      <div>
+        <strong id="statusTitulo">Som desativado</strong>
+        <small id="statusTexto">Clique em "Ativar som" para começar.</small>
+      </div>
+    </div>
+
+    <section>
+      <h2>Voz</h2>
+      <p class="hint">Use o Microsoft Edge para ter as vozes naturais brasileiras (Francisca, Thalita, Antonio).</p>
+      <div class="field">
+        <label for="voz">Voz</label>
+        <select id="voz" class="full"></select>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="velocidade">Velocidade: <span id="velTxt"></span></label>
+          <input type="range" id="velocidade" min="0.7" max="1.2" step="0.05">
+        </div>
+        <div class="field">
+          <label for="volume">Volume: <span id="volTxt"></span></label>
+          <input type="range" id="volume" min="0.3" max="1" step="0.05">
+        </div>
+      </div>
+      <button class="ghost" id="testar">▶ Testar voz</button>
+    </section>
+
+    <section>
+      <h2>Últimos avisos falados</h2>
+      <ul class="list" id="log"><li><small>Nenhum aviso desde que o tocador foi aberto.</small></li></ul>
+    </section>
+  </main>
+</div>
+
+<div id="ativar" class="hidden">
+  <div class="box">
+    <h1>🔊 Ativar som</h1>
+    <p>Por segurança, o navegador só libera o áudio depois de um clique. Clique uma vez sempre que abrir esta página.</p>
+    <button class="primary" id="btnAtivar">Ativar som</button>
+  </div>
+</div>
+
+<script type="module">
+/* ===== Mesma configuração do painel ===== */
+const firebaseConfig = {
+  apiKey: "AIzaSyDAA3-VvCtWn-w-p4fIB1RPvUZcguPuwTM",
+  authDomain: "skyfit-chamada.firebaseapp.com",
+  databaseURL: "https://skyfit-chamada-default-rtdb.firebaseio.com",
+  projectId: "skyfit-chamada",
+  appId: "1:267631431521:web:4f8515476dc5403817bf20"
+};
+const UNIDADES = [
+  { id: "ville-roy", nome: "Ville Roy" },
+  { id: "buritis",   nome: "Buritis" }
+];
+const IDADE_MAXIMA_MS = 90000; // ignora chamadas antigas ao abrir a página
+const HEARTBEAT_MS = 60000;
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getDatabase, ref, set, onValue, off, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+const $ = (id) => document.getElementById(id);
+
+/* ===== Preferências locais deste computador ===== */
+const lerPref = (k, padrao) => { try { return localStorage.getItem(k) ?? padrao; } catch { return padrao; } };
+const salvarPref = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
+
+const state = {
+  unidade: lerPref("tocador_unidade", UNIDADES[0].id),
+  somAtivo: false, offset: 0, vozes: [],
+  ultimaId: "", agendamentos: [], refChamada: null, heartbeat: null,
+  tocadorId: lerPref("tocador_id", "") || ("tocador-" + Math.random().toString(36).slice(2, 8))
+};
+salvarPref("tocador_id", state.tocadorId);
+const agora = () => Date.now() + state.offset;
+
+/* ===== Texto falado ===== */
+const LETRAS = { A:"á",B:"bê",C:"cê",D:"dê",E:"é",F:"éfe",G:"gê",H:"agá",I:"í",J:"jota",K:"cá",L:"éle",M:"ême",
+  N:"êne",O:"ó",P:"pê",Q:"quê",R:"érre",S:"ésse",T:"tê",U:"ú",V:"vê",W:"dáblio",X:"xis",Y:"ípsilon",Z:"zê" };
+const NUMEROS = ["zero","um","dois","três","quatro","cinco","seis","sete","oito","nove"];
+const CORES = { Branco:"branca", Preto:"preta", Vermelho:"vermelha", Amarelo:"amarela" }; // demais não mudam
+const MODELOS = { "HB20":"agá bê vinte", "S10":"ésse dez", "HR-V":"agá érre vê", "T-Cross":"tê cross",
+  "Onix":"Ônix", "Kwid":"Kuíd", "Tracker":"Tráquer", "Duster":"Dâster", "Civic":"Cívic", "Etios":"Étios" };
+
+function soletrarPlaca(p) {
+  return String(p || "").toUpperCase().replace(/[^A-Z0-9]/g, "").split("")
+    .map(c => /[0-9]/.test(c) ? NUMEROS[+c] : (LETRAS[c] || c)).join(", ");
+}
+function montarTexto(c) {
+  const modelo = MODELOS[c.modelo] || c.modelo || "";
+  const cor = (CORES[c.cor] || c.cor || "").toLowerCase();
+  return `Atenção! Proprietário do veículo ${modelo}, cor ${cor}, placa ${soletrarPlaca(c.placa)}. Por favor, compareça à recepção.`;
+}
+
+/* ===== Voz ===== */
+function carregarVozes() {
+  const todas = speechSynthesis.getVoices();
+  const pt = todas.filter(v => /^pt[-_]BR/i.test(v.lang));
+  state.vozes = pt.length ? pt : todas.filter(v => /^pt/i.test(v.lang));
+  const salva = lerPref("tocador_voz", "");
+  const preferida = state.vozes.find(v => v.name === salva)
+    || state.vozes.find(v => /Francisca|Thalita|Antonio/i.test(v.name) && /Natural/i.test(v.name))
+    || state.vozes[0];
+  $("voz").innerHTML = state.vozes.length
+    ? state.vozes.map(v => `<option value="${v.name}">${v.name}</option>`).join("")
+    : `<option>Nenhuma voz em português encontrada. Use o Microsoft Edge.</option>`;
+  if (preferida) $("voz").value = preferida.name;
+}
+speechSynthesis.onvoiceschanged = carregarVozes;
+carregarVozes();
+
+$("voz").addEventListener("change", e => salvarPref("tocador_voz", e.target.value));
+$("velocidade").value = lerPref("tocador_vel", "0.95");
+$("volume").value = lerPref("tocador_vol", "1");
+function mostrarAjustes() {
+  $("velTxt").textContent = Number($("velocidade").value).toFixed(2) + "×";
+  $("volTxt").textContent = Math.round($("volume").value * 100) + "%";
+}
+["velocidade", "volume"].forEach(id => $(id).addEventListener("input", (e) => {
+  salvarPref(id === "velocidade" ? "tocador_vel" : "tocador_vol", e.target.value);
+  mostrarAjustes();
+}));
+mostrarAjustes();
+
+/** "Plim" curto antes da voz, gerado no navegador (sem arquivo). */
+function plim(volume) {
+  return new Promise((resolve) => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [880, 1320].forEach((freq, i) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = "sine"; o.frequency.value = freq;
+        const t = ctx.currentTime + i * 0.28;
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(0.4 * volume, t + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+        o.connect(g).connect(ctx.destination);
+        o.start(t); o.stop(t + 0.55);
+      });
+      setTimeout(() => { ctx.close(); resolve(); }, 1000);
+    } catch { resolve(); }
+  });
+}
+
+async function falar(texto) {
+  if (!state.somAtivo) return;
+  const volume = Number($("volume").value);
+  speechSynthesis.cancel();
+  marcarStatus("falando", "Falando agora…", texto);
+  await plim(volume);
+  const u = new SpeechSynthesisUtterance(texto);
+  const voz = state.vozes.find(v => v.name === $("voz").value);
+  if (voz) u.voice = voz;
+  u.lang = voz?.lang || "pt-BR";
+  u.rate = Number($("velocidade").value);
+  u.volume = volume;
+  u.onend = u.onerror = () => marcarStatus("ok", "Pronto para falar", "Aguardando chamadas da recepção.");
+  speechSynthesis.speak(u);
+}
+
+/* ===== Status na tela ===== */
+function marcarStatus(tipo, titulo, texto) {
+  $("status").className = "status " + tipo;
+  $("statusTitulo").textContent = titulo;
+  $("statusTexto").textContent = texto;
+}
+
+function registrar(c) {
+  const li = document.createElement("li");
+  const hora = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  li.innerHTML = `<span></span><small>${hora}</small>`;
+  li.firstChild.textContent = `${c.modelo} ${c.cor} · ${c.placa}`;
+  const log = $("log");
+  if (log.querySelector("small") && !log.querySelector("li span")) log.innerHTML = "";
+  log.prepend(li);
+  while (log.children.length > 10) log.lastChild.remove();
+}
+
+/* ===== Chamadas em tempo real ===== */
+function cancelarAgendados() {
+  state.agendamentos.forEach(clearTimeout);
+  state.agendamentos = [];
+  speechSynthesis.cancel();
+}
+
+function processar(c) {
+  if (!c || !c.id) return;
+  if (c.cancelada) {
+    if (c.id === state.ultimaId) {
+      cancelarAgendados();
+      marcarStatus("ok", "Pronto para falar", "Chamada cancelada pela recepção.");
+    }
+    return;
+  }
+  if (c.id === state.ultimaId || !c.ts) return;
+  state.ultimaId = c.id;
+  if (agora() - c.ts > IDADE_MAXIMA_MS) return; // chamada antiga: não fala
+
+  cancelarAgendados();
+  registrar(c);
+  // Mesmo ritmo das TVs: fala no início de cada exibição
+  const texto = montarTexto(c);
+  const exib = Math.min(Math.max(Number(c.exibicoes) || 1, 1), 5);
+  const ciclo = ((Number(c.duracaoSeg) || 10) + (Number(c.intervaloSeg) || 20)) * 1000;
+  for (let i = 0; i < exib; i++) {
+    state.agendamentos.push(setTimeout(() => falar(texto), i * ciclo));
+  }
+}
+
+function escutar() {
+  if (state.refChamada) off(state.refChamada);
+  cancelarAgendados();
+  state.ultimaId = "";
+  state.refChamada = ref(db, `unidades/${state.unidade}/chamada`);
+  onValue(state.refChamada, (s) => processar(s.val()));
+  enviarHeartbeat();
+}
+
+/* Aparece na lista "TVs da unidade" do painel, para a recepção saber que o som está ativo */
+function enviarHeartbeat() {
+  if (!auth.currentUser) return;
+  set(ref(db, `unidades/${state.unidade}/tvs/${state.tocadorId}`), {
+    nome: "🔊 Tocador de áudio" + (state.somAtivo ? "" : " (som desativado)"),
+    lastSeen: serverTimestamp(),
+    versao: "audio-1",
+    sobreposicaoOk: state.somAtivo,
+    erro: ""
+  }).catch(() => {});
+}
+
+onValue(ref(db, ".info/serverTimeOffset"), (s) => { state.offset = s.val() || 0; });
+
+/* ===== Interface ===== */
+$("unidade").innerHTML = UNIDADES.map(u => `<option value="${u.id}">${u.nome}</option>`).join("");
+$("unidade").value = state.unidade;
+$("unidade").addEventListener("change", (e) => {
+  state.unidade = e.target.value;
+  salvarPref("tocador_unidade", state.unidade);
+  escutar();
+});
+
+$("btnAtivar").addEventListener("click", () => {
+  state.somAtivo = true;
+  $("ativar").classList.add("hidden");
+  carregarVozes();
+  marcarStatus("ok", "Pronto para falar", "Aguardando chamadas da recepção.");
+  enviarHeartbeat();
+});
+
+$("testar").addEventListener("click", () => {
+  if (!state.somAtivo) return $("ativar").classList.remove("hidden");
+  falar(montarTexto({ modelo: "Onix", cor: "Prata", placa: "ABC1D23" }));
+});
+
+$("formLogin").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  $("erroLogin").textContent = "";
+  try { await signInWithEmailAndPassword(auth, $("email").value.trim(), $("senha").value); }
+  catch { $("erroLogin").textContent = "E-mail ou senha incorretos."; }
+});
+$("sair").addEventListener("click", () => signOut(auth));
+
+onAuthStateChanged(auth, (user) => {
+  $("login").classList.toggle("hidden", !!user);
+  $("app").classList.toggle("hidden", !user);
+  $("ativar").classList.toggle("hidden", !user || state.somAtivo);
+  clearInterval(state.heartbeat);
+  if (user) {
+    escutar();
+    state.heartbeat = setInterval(enviarHeartbeat, HEARTBEAT_MS);
+  } else if (state.refChamada) {
+    off(state.refChamada);
+    cancelarAgendados();
+  }
+});
+</script>
+</body>
+</html>
